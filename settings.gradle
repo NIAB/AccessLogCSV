@@ -1,0 +1,3 @@
+rootProject.name = 'AccessLogCsv'
+
+enableFeaturePreview 'STABLE_CONFIGURATION_CACHE'
