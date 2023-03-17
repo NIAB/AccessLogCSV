@@ -1,8 +1,8 @@
-# AccessLogCsv
+# AccessLogCSV
 Recursively walks a directory and logs the access times of all files to a CSV
 
-## Requirements
-- Java 11+
+## Download
+You can download the jar from the releases page: https://github.com/NIAB/AccessLogCSV/releases
 
 ## Usage
 `java -jar AccessLogCsv.jar <directory> [output file]`
