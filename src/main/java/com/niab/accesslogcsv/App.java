@@ -22,7 +22,7 @@ final class App {
                 return;
             case 1:
                 if (args[0].equalsIgnoreCase("version")) {
-                    System.out.println("Version: 1.1.0");
+                    System.out.println("Version: 1.1.1");
                     System.exit(0);
                     return;
                 }
@@ -61,13 +61,15 @@ final class App {
                     if (Files.isDirectory(file))
                         continue;
 
-                    final BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
-                    final long fileAccessTime = attr.lastAccessTime().toMillis();
-                    final Path dirPath = file.getParent().toAbsolutePath();
-                    final Long latestAccessTime = latestAccessTimes.get(dirPath);
-                    if (latestAccessTime == null || fileAccessTime > latestAccessTime) {
-                        latestAccessTimes.put(dirPath, fileAccessTime);
-                    }
+                    try {
+                        final BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+                        final long fileAccessTime = attr.lastAccessTime().toMillis();
+                        final Path dirPath = file.getParent().toAbsolutePath();
+                        final Long latestAccessTime = latestAccessTimes.get(dirPath);
+                        if (latestAccessTime == null || fileAccessTime > latestAccessTime) {
+                            latestAccessTimes.put(dirPath, fileAccessTime);
+                        }
+                    } catch (final IOException ignored) {}
                 }
 
                 for (final Map.Entry<Path, Long> entry : latestAccessTimes.entrySet()) {
