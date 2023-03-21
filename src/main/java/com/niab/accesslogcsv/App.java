@@ -21,6 +21,11 @@ final class App {
                 System.exit(1);
                 return;
             case 1:
+                if (args[0].equalsIgnoreCase("version")) {
+                    System.out.println("Version: 1.1.0");
+                    System.exit(0);
+                    return;
+                }
                 folderPath = Paths.get(args[0]);
                 csvPath = Paths.get(args[0], "output.csv");
                 break;
