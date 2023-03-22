@@ -8,10 +8,12 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class App {
+    
+    private static long fileCount = 0;
+    
     public static void main(final String[] args) throws IOException {
         final Path folderPath;
         final Path csvPath;
@@ -53,25 +55,29 @@ final class App {
         final var dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         try (final BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
             writer.write("Access time,Full path\n");
-            final TreeMap<Path, Long> latestAccessTimes = new TreeMap<>(PathComparator.INSTANCE);
+            final Map<Path, Long> latestAccessTimes = new HashMap<>();
             try (final Stream<Path> files = Files.walk(folderPath)) {
-                latestAccessTimes.clear();
-                final var pathList = files.collect(Collectors.toUnmodifiableList());
-                for (final Path file : pathList) {
-                    if (Files.isDirectory(file))
-                        continue;
-
-                    try {
-                        final BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
-                        final long fileAccessTime = attr.lastAccessTime().toMillis();
-                        final Path dirPath = file.getParent().toAbsolutePath();
-                        final Long latestAccessTime = latestAccessTimes.get(dirPath);
-                        if (latestAccessTime == null || fileAccessTime > latestAccessTime) {
-                            latestAccessTimes.put(dirPath, fileAccessTime);
+                files.forEach(file -> {
+                    if (!Files.isDirectory(file)) {
+                        try {
+                            final BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+                            final long fileAccessTime = attr.lastAccessTime().toMillis();
+                            final Path dirPath = file.getParent().toAbsolutePath();
+                            final Long latestAccessTime = latestAccessTimes.get(dirPath);
+                            if (latestAccessTime == null || fileAccessTime > latestAccessTime) {
+                                latestAccessTimes.put(dirPath, fileAccessTime);
+                            }
+                        } catch (final IOException ignored) {
                         }
-                    } catch (final IOException ignored) {}
-                }
+                    }
 
+                    if (fileCount % 1000 == 0) {
+                        System.out.println(fileCount + " files");
+                    }
+                    fileCount++;
+                });
+
+                System.out.println("Writing access times to the log file");
                 for (final Map.Entry<Path, Long> entry : latestAccessTimes.entrySet()) {
                     writer.write(dateFormat.format(new Date(entry.getValue())) + "," + entry.getKey() + "\n");
                 }
