@@ -1,20 +1,34 @@
 plugins {
     id 'java'
-    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
+
+group = 'com.niab.accesslogcsv'
+archivesBaseName = 'AccessLogCSV'
+version = 'v1.2.0'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 
-application {
-    mainClass = 'com.niab.accesslogcsv.App'
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'it.unimi.dsi:fastutil-core:8.5.12' // adds specialised collections for better performance
 }
 
 tasks.named('jar', Jar) {
-    // The application block above should've done this
-    // I've probably made a mistake but this'll suffice as a workaround for now
     manifest {
         attributes 'Main-Class': 'com.niab.accesslogcsv.App'
     }
+}
+
+shadowJar {
+    archiveClassifier = ''
+}
+
+tasks.named('build') {
+    dependsOn 'shadowJar'
 }
 
 tasks.withType(JavaCompile).configureEach { JavaCompile task ->

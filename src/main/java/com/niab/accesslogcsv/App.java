@@ -1,7 +1,11 @@
 package com.niab.accesslogcsv;
 
+import it.unimi.dsi.fastutil.objects.Object2LongAVLTreeMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,6 +16,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class App {
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(final String[] args) throws IOException {
         final Path folderPath;
         final Path csvPath;
@@ -22,7 +28,7 @@ final class App {
                 return;
             case 1:
                 if (args[0].equalsIgnoreCase("version")) {
-                    System.out.println("Version: 1.1.1");
+                    System.out.println("Version: 1.2.0");
                     System.exit(0);
                     return;
                 }
@@ -50,13 +56,12 @@ final class App {
     }
 
     private static void makeCsv(final Path folderPath, final Path csvPath) {
-        final var dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         try (final BufferedWriter writer = Files.newBufferedWriter(csvPath)) {
-            writer.write("Access time,Full path\n");
-            final TreeMap<Path, Long> latestAccessTimes = new TreeMap<>(PathComparator.INSTANCE);
+            writer.write("Access time,Size,Full path\n");
+            final Object2LongAVLTreeMap<Path> latestAccessTimes = new Object2LongAVLTreeMap<>(FileUtils.PathComparator.INSTANCE);
             try (final Stream<Path> files = Files.walk(folderPath)) {
                 latestAccessTimes.clear();
-                final var pathList = files.collect(Collectors.toUnmodifiableList());
+                final var pathList = files.collect(Collectors.toList());
                 for (final Path file : pathList) {
                     if (Files.isDirectory(file))
                         continue;
@@ -65,32 +70,29 @@ final class App {
                         final BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
                         final long fileAccessTime = attr.lastAccessTime().toMillis();
                         final Path dirPath = file.getParent().toAbsolutePath();
-                        final Long latestAccessTime = latestAccessTimes.get(dirPath);
-                        if (latestAccessTime == null || fileAccessTime > latestAccessTime) {
+
+                        // if the file is newer than the latest access time for the directory, update the latest access time for the directory
+                        if (latestAccessTimes.containsKey(dirPath)) {
+                            if (fileAccessTime > latestAccessTimes.getLong(dirPath)) {
+                                latestAccessTimes.put(dirPath, fileAccessTime);
+                            }
+                        } else {
                             latestAccessTimes.put(dirPath, fileAccessTime);
                         }
                     } catch (final IOException ignored) {}
                 }
 
-                for (final Map.Entry<Path, Long> entry : latestAccessTimes.entrySet()) {
-                    writer.write(dateFormat.format(new Date(entry.getValue())) + "," + entry.getKey() + "\n");
-                }
+                writeEntriesToCsv(writer, latestAccessTimes);
             }
         } catch (final IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static final class PathComparator implements Comparator<Path> {
-        static final PathComparator INSTANCE = new PathComparator();
-
-        @Override
-        public int compare(final Path path1, final Path path2) {
-            final int depth1 = path1.getNameCount();
-            final int depth2 = path2.getNameCount();
-            return depth1 == depth2
-                    ? path1.compareTo(path2)
-                    : Integer.compare(depth1, depth2);
+    private static void writeEntriesToCsv(final Writer writer, final Object2LongAVLTreeMap<Path> latestAccessTimes) throws IOException {
+        for (final Object2LongMap.Entry<Path> entry : latestAccessTimes.object2LongEntrySet()) {
+            final Path path = entry.getKey();
+            writer.write(DATE_FORMAT.format(new Date(entry.getLongValue())) + "," + FileUtils.humanReadableSize(path) + "," + path + "\n");
         }
     }
 }
