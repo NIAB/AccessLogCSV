@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 final class FileUtils {
     /**
-     * Attempts to calculate the size (in megabytes) of a file or directory.
+     * Attempts to calculate the size (in bytes) of a file or directory.
      *
      * <p>Since the operation is non-atomic, the returned value may be inaccurate.
      * However, this method is quick and does its best.</p>
